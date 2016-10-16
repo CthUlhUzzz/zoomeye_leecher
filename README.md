@@ -1,7 +1,7 @@
 # zeye
 Utility for ZoomEye search engine results loading
 
-Python 3.5 or higher requred
+Python 3.5 or higher requred        
 aiohttp >= 1.0.0 required
 
 ###Using example:
