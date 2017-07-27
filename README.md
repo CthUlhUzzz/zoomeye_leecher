@@ -17,5 +17,6 @@ optional arguments:
                         Concurrent connections count (default: 32)
   -z LIMIT, --limit LIMIT
                         Pages limit (default: 100)
-
 ```
+
+**Note:** Python 3.5 or above required
