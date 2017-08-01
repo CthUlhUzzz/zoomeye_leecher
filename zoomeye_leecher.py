@@ -5,10 +5,15 @@ import asyncio
 import functools
 import json
 import signal
+from collections import Counter
 from urllib.parse import urlencode
 
 import aiohttp
 import aiohttp.web
+
+__author__ = 'CthUlhUzzz'
+__version__ = '1.0'
+__license__ = 'WTFPL'
 
 REQUEST_URL = 'https://api.zoomeye.org/host/search?{query}&page={page}'
 LOGIN_REQUEST = 'https://api.zoomeye.org/user/login'
@@ -22,17 +27,15 @@ class ZoomEyeLeecher:
         self.password = password
         self.stopped = True
         self._token = None
-        self._counter = None
-        self._results = asyncio.Queue()
 
-    async def _worker(self, session, query, pages_limit):
-        while not self.stopped and not self._counter > pages_limit:
+    async def _worker(self, session, query, pages_limit, counter):
+        while not self.stopped and not counter['pages'] > pages_limit:
             async with session.get(REQUEST_URL.format(query=urlencode({'query': query}),
-                                                      page=self._counter),
+                                                      page=counter['pages'] + 1),
                                    headers={'Authorization': 'JWT ' + self._token}) as resp:
                 if resp.status == 200:
                     self._process_result(json.loads(await resp.text()))
-                    self._counter += 1
+                    counter['pages'] += 1
                 else:
                     break
 
@@ -45,10 +48,9 @@ class ZoomEyeLeecher:
                 async with session.post(LOGIN_REQUEST, data=json.dumps(login_data).encode()) as response:
                     assert response.status == 200
                     self._token = json.loads(await response.text())['access_token']
-            self._counter = 1
             self.stopped = False
-            workers = (self._worker(session, query, pages_limit) for _ in range(concurrent_connects))
-            await asyncio.gather(*workers)
+            workers = {self._worker(session, query, pages_limit, Counter()) for _ in range(concurrent_connects)}
+            await asyncio.wait(workers)
 
     @staticmethod
     def _process_result(result):
